@@ -38,5 +38,5 @@ Next you need to install the dependencies:
 Now you can run dispiano:
 
 ```
-python3 main.py <YOUR_TOKEN_HERE>
+python3 dispiano.py <YOUR_TOKEN_HERE>
 ```
