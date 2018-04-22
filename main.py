@@ -1,9 +1,11 @@
 import discord
 import pysynth as psb
 import sys
+import asyncio
 
 
 client = discord.Client()
+command_lock = asyncio.Lock()
 
 
 def parse_client_message_content(message):
@@ -38,6 +40,7 @@ def parse_client_message_content(message):
 @client.event
 async def on_message(message):
     if message.content.startswith('!piano'):
+        await command_lock.acquire()
         if message.author.voice.voice_channel is None:
             await client.send_message(
                 message.channel,
@@ -61,18 +64,21 @@ async def on_message(message):
                 message.channel,
                 'Hey dumb dumb! ' +
                 'Your notes are malformed!')
+            command_lock.release()
             return
 
-        voice = await client.join_voice_channel(
-            message.author.voice.voice_channel)
+        try:
+            voice = await client.join_voice_channel(
+                message.author.voice.voice_channel)
 
-        player = voice.create_ffmpeg_player('out.wav')
-        player.start()
+            player = voice.create_ffmpeg_player('out.wav')
+            player.start()
 
-        while not player.is_done():
-            pass
-
-        await voice.disconnect()
+            while not player.is_done():
+                await asyncio.sleep(1)
+        finally:
+            await voice.disconnect()
+            command_lock.release()
 
 def main():
     if len(sys.argv) == 2:
