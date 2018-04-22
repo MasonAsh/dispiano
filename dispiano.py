@@ -55,6 +55,7 @@ async def on_message(message):
                 message.channel,
                 'Hey dumb dumb! ' +
                 'Your notes are malformed!')
+            command_lock.release()
             return
 
         try:
