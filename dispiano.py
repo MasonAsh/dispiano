@@ -4,7 +4,7 @@ import sys
 import asyncio
 
 
-client = discord.Client()
+client = discord.Client(intents=discord.Intents.all())
 command_lock = asyncio.Lock()
 
 
@@ -41,18 +41,17 @@ def parse_client_message_content(message):
 async def on_message(message):
     if message.content.startswith('!piano'):
         await command_lock.acquire()
-        if message.author.voice.voice_channel is None:
-            await client.send_message(
-                message.channel,
+        if message.author.voice is None:
+            await message.channel.send(
                 'Hey dumb dumb! ' +
                 'You need to be in a voice channel to use this bot.')
+            command_lock.release()
             return
 
         try:
             song, bpm = parse_client_message_content(message.content)
         except:
-            await client.send_message(
-                message.channel,
+            await message.channel.send(
                 'Hey dumb dumb! ' +
                 'Your notes are malformed!')
             command_lock.release()
@@ -61,21 +60,19 @@ async def on_message(message):
         try:
             psb.make_wav(song, fn="out.wav", bpm=bpm)
         except:
-            await client.send_message(
-                message.channel,
+            await message.channel.send(
                 'Hey dumb dumb! ' +
                 'Your notes are malformed!')
             command_lock.release()
             return
 
         try:
-            voice = await client.join_voice_channel(
-                message.author.voice.voice_channel)
+            voice = await message.author.voice.channel.connect()
 
-            player = voice.create_ffmpeg_player('out.wav')
-            player.start()
+            player = discord.FFmpegPCMAudio('out.wav')
+            voice.play(player)
 
-            while not player.is_done():
+            while voice.is_playing():
                 await asyncio.sleep(1)
         finally:
             await voice.disconnect()
